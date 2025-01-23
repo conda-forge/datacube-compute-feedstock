@@ -1,6 +1,6 @@
 context:
   name: datacube-compute
-  version: 0.0.6
+  version: "0.0.7"
 
 package:
   name: ${{ name|lower }}
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://github.com/auspatious/datacube-compute/archive/${{ version }}.tar.gz
-  sha256: 4706e086e4fb5049c88cfd28ea2dfda2f40c56146834e09fb59e8956d5be801a
+  sha256: a58fff99f059d0d518dfdfae971d78ce46f6ab95d7e436c43acea5130d85b4de
 
 build:
   number: 0
