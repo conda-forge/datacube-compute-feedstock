@@ -14,10 +14,6 @@ build:
   number: 0
   script:
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - if: win
-      then: set SETUPTOOLS_SCM_PRETEND_VERSION=${{ version }}
-    - if: unix
-      then: export SETUPTOOLS_SCM_PRETEND_VERSION=${{ version }}
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
@@ -26,13 +22,11 @@ requirements:
     - ${{ compiler("c") }}
     - ${{ compiler("rust") }}
     - cargo-bundle-licenses
+    - maturin >=1.0,<2.0
   host:
+    - maturin >=1.0,<2.0
     - pip
     - python
-    - setuptools
-    - setuptools-rust
-    - setuptools-scm >=3.4
-    - wheel
   run:
     - numpy
     - python
@@ -43,6 +37,8 @@ tests:
       imports:
         - datacube_compute
       pip_check: true
+  - script:
+      - python -c "import datacube_compute; assert datacube_compute.__version__ == '${{ version }}', datacube_compute.__version__"
 
 about:
   summary: A library with fast implementations of algorithms for processing satellite images.
