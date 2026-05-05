@@ -1,5 +1,6 @@
 context:
   name: datacube-compute
+  python_min: "3.10"
   version: "0.1.0"
 
 package:
@@ -12,9 +13,16 @@ source:
 
 build:
   number: 0
+  python:
+    version_independent: true
   script:
+    - if: win
+      then: set MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
+      else: export MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - not (match(python, python_min ~ ".*") and is_abi3)
 
 requirements:
   build:
@@ -26,10 +34,13 @@ requirements:
   host:
     - maturin >=1.0,<2.0
     - pip
-    - python
+    - python ${{ python_min }}.*
+    - if: is_abi3
+      then:
+        - python-abi3 ${{ python_min }}.*
   run:
     - numpy
-    - python
+    - python >=${{ python_min }}
     - xarray
 
 tests:
@@ -37,8 +48,13 @@ tests:
       imports:
         - datacube_compute
       pip_check: true
+      python_version: ${{ python_min }}.*
   - script:
       - python -c "import datacube_compute; assert datacube_compute.__version__ == '${{ version }}', datacube_compute.__version__"
+      - abi3audit $SP_DIR/datacube_compute/backend.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
 
 about:
   summary: A library with fast implementations of algorithms for processing satellite images.
