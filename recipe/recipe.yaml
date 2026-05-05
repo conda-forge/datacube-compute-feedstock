@@ -55,7 +55,10 @@ tests:
       python_version: ${{ python_min }}.*
   - script:
       - python -c "import datacube_compute; assert datacube_compute.__version__ == '${{ version }}', datacube_compute.__version__"
-      - abi3audit $SP_DIR/datacube_compute/backend.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: unix and is_abi3
+        then: abi3audit $SP_DIR/datacube_compute/backend.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: win and is_abi3
+        then: abi3audit %SP_DIR%\\datacube_compute\\backend.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
     requirements:
       run:
         - abi3audit
