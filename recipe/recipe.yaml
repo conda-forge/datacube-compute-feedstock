@@ -16,11 +16,15 @@ build:
   python:
     version_independent: true
   script:
-    - if: win
-      then: set MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
-      else: export MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
-    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: win
+        then: set MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
+        else: export MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   skip:
     - not (match(python, python_min ~ ".*") and is_abi3)
 
