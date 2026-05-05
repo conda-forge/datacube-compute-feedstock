@@ -1,6 +1,7 @@
 context:
   name: datacube-compute
-  version: "0.0.7"
+  python_min: "3.10"
+  version: "0.1.0"
 
 package:
   name: ${{ name|lower }}
@@ -8,17 +9,24 @@ package:
 
 source:
   url: https://github.com/auspatious/datacube-compute/archive/${{ version }}.tar.gz
-  sha256: a58fff99f059d0d518dfdfae971d78ce46f6ab95d7e436c43acea5130d85b4de
+  sha256: f9bbe480778e1184261909ce164e551e5d80e80ef071aebd8257426b026e7d84
 
 build:
-  number: 1
+  number: 0
+  python:
+    version_independent: true
   script:
-    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - if: win
-      then: set SETUPTOOLS_SCM_PRETEND_VERSION=${{ version }}
-    - if: unix
-      then: export SETUPTOOLS_SCM_PRETEND_VERSION=${{ version }}
-    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: win
+        then: set MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
+        else: export MATURIN_PEP517_ARGS="--features=pyo3/abi3-py310"
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - not (match(python, python_min ~ ".*") and is_abi3)
 
 requirements:
   build:
@@ -26,16 +34,17 @@ requirements:
     - ${{ compiler("c") }}
     - ${{ compiler("rust") }}
     - cargo-bundle-licenses
+    - maturin >=1.0,<2.0
   host:
+    - maturin >=1.0,<2.0
     - pip
-    - python
-    - setuptools
-    - setuptools-rust
-    - setuptools-scm >=3.4
-    - wheel
+    - python ${{ python_min }}.*
+    - if: is_abi3
+      then:
+        - python-abi3 ${{ python_min }}.*
   run:
     - numpy
-    - python
+    - python >=${{ python_min }}
     - xarray
 
 tests:
@@ -43,6 +52,16 @@ tests:
       imports:
         - datacube_compute
       pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - python -c "import datacube_compute; assert datacube_compute.__version__ == '${{ version }}', datacube_compute.__version__"
+      - if: unix and is_abi3
+        then: abi3audit $SP_DIR/datacube_compute/backend.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: win and is_abi3
+        then: abi3audit %SP_DIR%\\datacube_compute\\backend.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
 
 about:
   summary: A library with fast implementations of algorithms for processing satellite images.
